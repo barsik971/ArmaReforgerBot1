@@ -34,7 +34,7 @@ jobs:
 
     - name: Build with PyInstaller
       run: |
-        pyinstaller --onefile --windowed --name ArmaReforgerBot main.py --hidden-import PySide6.QtCore --hidden-import PySide6.QtGui --hidden-import PySide6.QtWidgets --hidden-import loguru --collect-all PySide6
+        python -m PyInstaller --onefile --windowed --name ArmaReforgerBot main.py --hidden-import PySide6.QtCore --hidden-import PySide6.QtGui --hidden-import PySide6.QtWidgets --hidden-import loguru --collect-all PySide6 --noconfirm
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
