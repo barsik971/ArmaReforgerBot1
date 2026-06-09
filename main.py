@@ -15,7 +15,8 @@ from gui.main_window import MainWindow
 def setup_logger():
     logger.remove()
     logger.add("bot.log", rotation="1 MB", level="DEBUG", format="{time} {level} {message}")
-    logger.add(sys.stdout, level="INFO", format="<green>{time}</green> <level>{message}</level>")
+    if sys.stdout is not None:
+        logger.add(sys.stdout, level="INFO", format="<green>{time}</green> <level>{message}</level>")
 
 def main():
     setup_logger()
