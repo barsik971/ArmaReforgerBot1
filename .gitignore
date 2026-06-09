@@ -1,0 +1,14 @@
+__pycache__/
+*.pyc
+*.pyo
+*.log
+config.json
+venv/
+.idea/
+.vscode/
+dist/
+build/
+*.spec
+/training_data/
+/shader_cache/
+/graphics_backup/

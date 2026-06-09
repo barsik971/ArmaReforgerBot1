@@ -1,0 +1,26 @@
+QMainWindow {
+    background: transparent;
+}
+QTabWidget::pane {
+    background: rgba(10, 10, 10, 200);
+    border: 2px solid #ff0099;
+}
+QPushButton {
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
+                                stop:0 #ff0099, stop:1 #6600cc);
+    color: #0f0;
+    border: 1px solid #0f0;
+    padding: 5px;
+}
+QPushButton:hover {
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
+                                stop:0 #ff33aa, stop:1 #9933ff);
+}
+QLabel {
+    color: #ff0099;
+}
+QLineEdit, QTextEdit, QSpinBox, QComboBox {
+    background: #111;
+    color: #0f0;
+    border: 1px solid #ff0099;
+}
