@@ -28,14 +28,14 @@ jobs:
         refreshenv
         where tesseract
 
-    - name: Upgrade pip and install dependencies
+    - name: Install Python dependencies
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
     - name: Build with PyInstaller
       run: |
-        pyinstaller --onefile --windowed --name ArmaReforgerBot main.py --hidden-import PySide6.QtCore --hidden-import PySide6.QtGui --hidden-import PySide6.QtWidgets --hidden-import loguru
+        pyinstaller --onefile --windowed --name ArmaReforgerBot main.py --hidden-import PySide6.QtCore --hidden-import PySide6.QtGui --hidden-import PySide6.QtWidgets --hidden-import loguru --collect-all PySide6
 
     - name: Upload artifact
       uses: actions/upload-artifact@v4
