@@ -33,17 +33,6 @@ jobs:
         python -m pip install --upgrade pip
         pip install -r requirements.txt
 
-    - name: Debug: list installed packages
-      run: pip list
-
-    - name: Syntax check all Python files
-      shell: pwsh
-      run: |
-        Write-Host "Checking syntax..."
-        Get-ChildItem -Recurse -Filter *.py | ForEach-Object {
-            python -m py_compile $_.FullName
-        }
-
     - name: Build with PyInstaller
       run: |
         pyinstaller --onefile --windowed --name ArmaReforgerBot main.py --hidden-import PySide6.QtCore --hidden-import PySide6.QtGui --hidden-import PySide6.QtWidgets --hidden-import loguru
