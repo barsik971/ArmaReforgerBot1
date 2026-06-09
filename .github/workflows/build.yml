@@ -37,10 +37,12 @@ jobs:
       run: pip list
 
     - name: Syntax check all Python files
-      shell: bash
+      shell: pwsh
       run: |
-        echo "Checking syntax..."
-        find . -name "*.py" -exec python -m py_compile {} \;
+        Write-Host "Checking syntax..."
+        Get-ChildItem -Recurse -Filter *.py | ForEach-Object {
+            python -m py_compile $_.FullName
+        }
 
     - name: Build with PyInstaller
       run: |
