@@ -237,7 +237,9 @@ class MainWindow(QMainWindow):
 
     def init_tray(self):
         self.tray_icon = QSystemTrayIcon(self)
-        #  self.tray_icon.setIcon(QIcon("icon.ico"))  # потребує файл іконки
+        # Використовуємо стандартну іконку PySide6, щоб не залежати від зовнішнього файлу
+        from PySide6.QtWidgets import QApplication, QStyle
+        self.tray_icon.setIcon(QApplication.style().standardIcon(QStyle.SP_ComputerIcon))
         self.tray_icon.setToolTip("Arma Reforger Bot")
 
         tray_menu = QMenu()
