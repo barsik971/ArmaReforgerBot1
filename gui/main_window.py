@@ -1,4 +1,6 @@
-import os, math, threading
+import os
+import math
+import threading
 from PySide6.QtWidgets import (
     QMainWindow, QWidget, QVBoxLayout, QHBoxLayout, QTabWidget,
     QLabel, QLineEdit, QPushButton, QCheckBox, QComboBox,
@@ -12,6 +14,7 @@ from core.plugin_manager import PluginManager
 from core.game_controller import GameController
 from core.telegram_bot import TelegramBot
 from core.automation import Automation
+from core.server_connector import ServerConnector
 from gui.macro_dialog import MacroDialog
 import winsound
 
@@ -19,6 +22,7 @@ import winsound
 # ---- Сигнал для безпечного оновлення GUI з інших потоків ----
 class LogSignal(QObject):
     new_message = Signal(str)
+
 
 class AnimatedBackground(QWidget):
     def __init__(self, parent=None):
@@ -70,25 +74,6 @@ class AnimatedBackground(QWidget):
 
 
 class MainWindow(QMainWindow):
-    
-    def _manual_connect(self):
-        if not self.license_manager.is_pro():
-            self._append_log("Потрібна Pro-версія для ручного підключення")
-            return
-        import threading
-        threading.Thread(target=self._connect_thread, daemon=True).start()
-
-    def _connect_thread(self):
-        from core.server_connector import ServerConnector
-        self._append_log("Запуск підключення вручну...")
-        connector = ServerConnector(self.config)
-        result = connector.connect()
-        if result:
-            self._append_log("Підключення успішне!")
-            self.play_sound(1000, 200)
-        else:
-            self._append_log("Не вдалося підключитись")
-
     def __init__(self, config, license_manager, plugin_manager, game_controller, telegram_bot):
         super().__init__()
         self.config = config
@@ -96,7 +81,10 @@ class MainWindow(QMainWindow):
         self.plugin_manager = plugin_manager
         self.game_controller = game_controller
         self.telegram_bot = telegram_bot
-        self.automation = None   # буде створено пізніше
+        self.automation = None
+
+        # Встановлюємо тему ДО створення вкладок, щоб уникнути помилки
+        self.current_theme = config.get("theme", "lava")
 
         self.setWindowTitle("Arma Reforger Auto Bot")
         self.setMinimumSize(800, 600)
@@ -124,7 +112,6 @@ class MainWindow(QMainWindow):
         self.dashboard_tab = QWidget()
         self.tabs.addTab(self.dashboard_tab, "Головна")
         self.init_dashboard_tab()
-
 
         self.plugins_tab = QWidget()
         self.tabs.addTab(self.plugins_tab, "Плагіни")
@@ -155,21 +142,20 @@ class MainWindow(QMainWindow):
         # Звук
         self.sound_enabled = config.get("sound_enabled", True)
 
-        # Тема
-        self.current_theme = config.get("theme", "lava")
-        self.apply_theme(self.current_theme)
-
         # Підключаємо логування до GUI через сигнал
         self.log_signal = LogSignal()
         self.log_signal.new_message.connect(self._append_log)
 
-        # Автоматизація (створюється тут, бо потрібен plugin_manager)
+        # Автоматизація
         self.automation = Automation(config, game_controller, plugin_manager)
 
-        # Таймер для оновлення прогрес-барів (черга сервера/фракції)
+        # Таймер для оновлення прогрес-барів
         self.queue_timer = QTimer(self)
         self.queue_timer.timeout.connect(self._update_queue_bars)
-        self.queue_timer.start(3000)  # кожні 3 секунди
+        self.queue_timer.start(3000)
+
+        # Застосовуємо тему
+        self.apply_theme(self.current_theme)
 
     # ---- Dashboard ----
     def init_dashboard_tab(self):
@@ -194,7 +180,7 @@ class MainWindow(QMainWindow):
         btn_stop.clicked.connect(self._stop_automation)
         layout.addWidget(btn_start)
         layout.addWidget(btn_stop)
-        # Ось тут додайте:
+
         btn_connect = QPushButton("🔌 Підключитись зараз")
         btn_connect.clicked.connect(self._manual_connect)
         layout.addWidget(btn_connect)
@@ -209,14 +195,28 @@ class MainWindow(QMainWindow):
             self.automation.stop()
             self._append_log("Автоматизацію зупинено")
 
+    def _manual_connect(self):
+        if not self.license_manager.is_pro():
+            self._append_log("Потрібна Pro-версія для ручного підключення")
+            return
+        threading.Thread(target=self._connect_thread, daemon=True).start()
+
+    def _connect_thread(self):
+        from core.adaptive_connector import AdaptiveConnector
+        self._append_log("Запуск підключення вручну...")
+        connector = AdaptiveConnector(self.config)
+        result = connector.connect()
+        if result:
+            self._append_log("Підключення успішне!")
+            self.play_sound(1000, 200)
+        else:
+            self._append_log("Не вдалося підключитись")
+
     def _update_queue_bars(self):
-        # Оновлюємо інформацію про чергу з game_controller
         try:
             queue_pos = self.game_controller.get_queue_position()
             self.queue_label.setText(f"Черга сервера: {queue_pos}")
-            # Припустимо, що черга від 0 до 100 (для прикладу)
             self.server_queue_bar.setValue(min(queue_pos, 100))
-            # Фракційна черга – заглушка
             self.faction_queue_bar.setValue(0)
             state = self.game_controller.get_game_state()
             self.state_label.setText(f"Стан гри: {state}")
@@ -237,10 +237,8 @@ class MainWindow(QMainWindow):
             layout.addWidget(desc)
 
     def toggle_plugin(self, plugin, state):
-        # Перевірка Pro для плагінів (окрім базових, якщо треба)
         if state and not self.license_manager.is_pro():
             self._append_log("Потрібна Pro-версія для активації плагіна")
-            # Знімаємо галочку назад
             cb = self.plugin_checkboxes.get(plugin.get_name())
             if cb:
                 cb.blockSignals(True)
@@ -307,7 +305,7 @@ class MainWindow(QMainWindow):
         layout.addWidget(QLabel("Тема оформлення:"))
         self.theme_combo = QComboBox()
         self.theme_combo.addItems(["lava", "neon", "cyberpunk", "classic"])
-        self.theme_combo.setCurrentText(self.current_theme)
+        self.theme_combo.setCurrentText(self.current_theme)  # тепер self.current_theme існує
         self.theme_combo.currentTextChanged.connect(self.change_theme)
         layout.addWidget(self.theme_combo)
 
@@ -375,17 +373,13 @@ class MainWindow(QMainWindow):
 
     # ---- Логування в GUI ----
     def _append_log(self, text):
-        # Додає рядок у QTextEdit
         self.log_output.append(text)
-        # Також пишемо в loguru (але воно вже пишеться окремо)
         logger.info(text)
 
     def add_log_handler(self):
-        """Метод для підключення loguru до GUI через сигнал."""
-        # Можна викликати після ініціалізації
         logger.add(lambda msg: self.log_signal.new_message.emit(str(msg)), level="INFO")
 
-    # ---- Звукове сповіщення (для зовнішнього виклику) ----
+    # ---- Звукове сповіщення ----
     def play_sound(self, freq=1000, duration=200):
         if self.sound_enabled:
             winsound.Beep(freq, duration)
