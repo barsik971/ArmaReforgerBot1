@@ -1,14 +1,16 @@
 import threading
 import time
 from loguru import logger
-from core.server_connector import ServerConnector
+from core.game_controller import GameController
+from core.plugin_manager import PluginManager
+from core.adaptive_connector import AdaptiveConnector
 
 class Automation:
     def __init__(self, config, game_controller, plugin_manager):
         self.config = config
         self.game_controller = game_controller
         self.plugin_manager = plugin_manager
-        self.connector = ServerConnector(config)
+        self.connector = AdaptiveConnector(config)   # тепер Adaptive
         self.running = False
         self.thread = None
 
@@ -29,18 +31,12 @@ class Automation:
                 state = self.game_controller.get_game_state()
                 logger.debug(f"Game state: {state}")
                 if state == "not_running":
-                    logger.warning("Game not running. Waiting...")
+                    logger.warning("Гра не запущена")
                 elif state in ("main_menu", "multiplayer", "favorites", "server_list"):
-                    # Запускаємо повний цикл підключення
-                    success = self.connector.connect()
-                    if success:
-                        logger.info("Connected! Monitoring game state...")
-                        # Чекаємо, поки гра закінчиться (стан стане не in_game)
-                        while self.running and self.game_controller.get_game_state() == "in_game":
-                            time.sleep(10)
-                elif state in ("queue",):
-                    # Просто чекаємо, конектор сам обробить чергу
-                    pass
+                    self.connector.connect()
+                    # Після успішного підключення чекаємо виходу з гри
+                    while self.running and self.game_controller.get_game_state() == "in_game":
+                        time.sleep(10)
                 time.sleep(5)
             except Exception as e:
                 logger.error(f"Automation error: {e}")

@@ -10,6 +10,12 @@ from core.telegram_bot import TelegramBot
 from core.plugin_manager import PluginManager
 from core.game_controller import GameController
 from gui.main_window import MainWindow
+from core.automation import Automation
+automation = Automation(config, game_controller, plugin_manager)
+
+telegram_bot = TelegramBot(config, license_manager, game_controller, automation, plugin_manager)
+if config.get("telegram_enabled", True):
+    telegram_bot.start()
 
 def setup_logger():
     logger.remove()
@@ -26,11 +32,6 @@ def main():
 
     license_manager = LicenseManager(config)
     game_controller = GameController(config)
-
-    # Telegram бот (запускається завжди, якщо є токен)
-    telegram_bot = TelegramBot(config, license_manager, game_controller)
-    if config.get("telegram_enabled", True):
-        telegram_bot.start()
 
     # Створюємо GUI
     app = QApplication(sys.argv)
