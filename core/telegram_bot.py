@@ -243,12 +243,14 @@ class TelegramBot:
 
     # ---------- Web App (заглушка) ----------
     def _send_webapp(self, chat_id):
-        webapp_url = "https://your-domain.com/app"
+        # Якщо сервер локальний, Telegram не зможе відкрити localhost.
+        # Для тесту використовуйте ngrok або ваш публічний IP.
+        webapp_url = self.config.get("webapp_url", "http://localhost:5000")
         markup = types.InlineKeyboardMarkup()
         btn = types.InlineKeyboardButton("Відкрити веб-інтерфейс", url=webapp_url)
         markup.add(btn)
         self.bot.send_message(chat_id, "📱 Натисніть, щоб відкрити панель керування:", reply_markup=markup)
-
+        
     # ---------- Адмін-команда /genlicense ----------
     def _genlicense_command(self, message):
         if message.chat.id != self.admin_chat_id:

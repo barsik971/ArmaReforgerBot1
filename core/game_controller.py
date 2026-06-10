@@ -10,20 +10,35 @@ class GameController:
 
     def get_game_state(self) -> str:
         try:
+            # Перевіряємо, чи доступний tesseract
+            if not self._tesseract_available():
+                return "unknown"
             screen = ImageGrab.grab()
             text = pytesseract.image_to_string(screen, lang='eng').lower()
-            if "main menu" in text or "play" in text:
+            if "main menu" in text:
                 return "main_menu"
-            if "multiplayer" in text and "server" in text:
+            if "multiplayer" in text and "favorites" not in text:
+                return "multiplayer"
+            if "favorites" in text:
+                return "favorites"
+            if "server browser" in text or "servers" in text:
                 return "server_list"
             if "queue" in text and "position" in text:
-                return "faction_queue"
+                return "queue"
             if "deploy" in text or "spawn" in text:
                 return "in_game"
-            return "not_running"
+            return "unknown"
         except Exception as e:
             logger.error(f"get_game_state error: {e}")
             return "unknown"
+
+    def _tesseract_available(self):
+        import subprocess
+        try:
+            subprocess.run(['tesseract', '--version'], capture_output=True, check=True)
+            return True
+        except:
+            return False
 
     def click_filter_positions(self):
         positions = self.config.get("filter_positions", [])

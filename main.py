@@ -1,5 +1,6 @@
 import sys
 import os
+import threading
 from pathlib import Path
 from PySide6.QtWidgets import QApplication
 from PySide6.QtCore import Qt
@@ -10,6 +11,7 @@ from core.telegram_bot import TelegramBot
 from core.plugin_manager import PluginManager
 from core.game_controller import GameController
 from core.automation import Automation
+from core.web_server import WebServer
 from gui.main_window import MainWindow
 
 def setup_logger():
@@ -22,47 +24,44 @@ def main():
     setup_logger()
     logger.info("Starting Arma Reforger Auto Bot")
 
-    # 1. СТВОРЮЄМО КОНФІГ ПЕРШИМ
     config_path = Path("config.json")
     config = ConfigManager(config_path)
 
-    # 2. Ліцензія
     license_manager = LicenseManager(config)
-
-    # 3. Ігровий контролер
     game_controller = GameController(config)
 
-    # 4. PluginManager (поки без головного вікна)
+    # PluginManager (поки без головного вікна)
     plugin_manager = PluginManager(config, game_controller, license_manager, main_window=None)
 
-    # 5. Automation (використовує AdaptiveConnector)
+    # Automation
     automation = Automation(config, game_controller, plugin_manager)
 
-    # 6. Telegram-бот (тепер config вже існує)
+    # Telegram бот
     telegram_bot = TelegramBot(config, license_manager, game_controller, automation, plugin_manager)
     if config.get("telegram_enabled", True):
         telegram_bot.start()
 
-    # 7. Створюємо GUI
+    # Запускаємо Web Server у фоновому потоці
+    web_server = WebServer(config, game_controller, automation, plugin_manager, license_manager, telegram_bot)
+    web_thread = threading.Thread(target=web_server.run, daemon=True)
+    web_thread.start()
+    logger.info("Web server started on http://localhost:5000")
+
+    # GUI
     app = QApplication(sys.argv)
     app.setStyle("Fusion")
 
     window = MainWindow(config, license_manager, plugin_manager, game_controller, telegram_bot)
 
-    # 8. Передаємо головне вікно в plugin_manager
+    # Передаємо вікно в plugin_manager
     plugin_manager.main_window = window
-
-    # 9. Завантажуємо плагіни (тепер вони можуть отримати доступ до вікна)
     plugin_manager.load_plugins()
 
-    # 10. Підключаємо логування в GUI (якщо метод існує)
     if hasattr(window, 'add_log_handler'):
         window.add_log_handler()
 
-    # 11. Показуємо вікно
     window.show()
 
-    # 12. Запускаємо головний цикл
     sys.exit(app.exec())
 
 if __name__ == "__main__":
