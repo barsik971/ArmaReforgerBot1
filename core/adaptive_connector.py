@@ -6,7 +6,8 @@ from PIL import ImageGrab
 import re
 from pathlib import Path
 from loguru import logger
-from core.server_scanner import ServerScanner   # <-- новий імпорт
+from core.server_scanner import ServerScanner
+import subprocess
 
 class AdaptiveConnector:
     def __init__(self, config):
@@ -25,7 +26,7 @@ class AdaptiveConnector:
         self.refresh_key = config.get("refresh_key", "r")
         self.refresh_interval = config.get("refresh_interval", 5)
 
-        self.scanner = ServerScanner(config)   # <-- використовуємо сканер
+        self.scanner = ServerScanner(config)
         self.success_profile = self._load_success_profile()
 
     # ---------- Профіль успіху ----------
@@ -47,8 +48,20 @@ class AdaptiveConnector:
         with open(self.successful_profile_path, 'w') as f:
             json.dump(self.success_profile, f, indent=2)
 
+    def _tesseract_available(self):
+        """Перевіряє, чи встановлено tesseract і чи доступний він через PATH."""
+        try:
+            subprocess.run(['tesseract', '--version'], capture_output=True, check=True)
+            return True
+        except:
+            return False
+
     # ---------- Головний цикл ----------
     def connect(self):
+        if not self._tesseract_available():
+            logger.error("Tesseract не знайдено. OCR-функції недоступні.")
+            return False
+
         logger.info(f"🚀 Підключення до {self.server_name}")
         try:
             self._navigate_to_favorites()
@@ -173,22 +186,23 @@ class AdaptiveConnector:
         raise TimeoutError(f"Не знайдено '{text}'")
 
     def _click_element(self, text):
-        # Використовуємо OCR через сканер або шаблони
+        # Спочатку спробуємо знайти як шаблон
+        for directory in (self.scanner.templates_dir, self.scanner.assets_dir):
+            path = directory / f"{text.lower().replace(' ', '_')}.png"
+            if path.exists():
+                rect = self._find_image_on_screen(str(path))
+                if rect:
+                    pos = (rect[0] + rect[2]//2, rect[1] + rect[3]//2)
+                    pyautogui.click(pos[0], pos[1])
+                    return
+        # Потім OCR
         pos = self.scanner._ocr_find_word(text)
-        if not pos:
-            # Спробуємо шаблони
-            for directory in (self.scanner.templates_dir, self.scanner.assets_dir):
-                path = directory / f"{text.lower().replace(' ', '_')}.png"
-                if path.exists():
-                    rect = self._find_image_on_screen(str(path))
-                    if rect:
-                        pos = (rect[0] + rect[2]//2, rect[1] + rect[3]//2)
-                        break
         if pos:
             pyautogui.click(pos[0], pos[1])
+        else:
+            logger.warning(f"Не знайдено '{text}' для кліку")
 
     def _find_image_on_screen(self, image_path, confidence=0.8):
-        # Перевикористовуємо зі сканера
         return self.scanner._find_image_on_screen(image_path, confidence)
 
     def _save_screenshot(self, prefix):
