@@ -70,6 +70,25 @@ class AnimatedBackground(QWidget):
 
 
 class MainWindow(QMainWindow):
+    
+    def _manual_connect(self):
+        if not self.license_manager.is_pro():
+            self._append_log("Потрібна Pro-версія для ручного підключення")
+            return
+        import threading
+        threading.Thread(target=self._connect_thread, daemon=True).start()
+
+    def _connect_thread(self):
+        from core.server_connector import ServerConnector
+        self._append_log("Запуск підключення вручну...")
+        connector = ServerConnector(self.config)
+        result = connector.connect()
+        if result:
+            self._append_log("Підключення успішне!")
+            self.play_sound(1000, 200)
+        else:
+            self._append_log("Не вдалося підключитись")
+
     def __init__(self, config, license_manager, plugin_manager, game_controller, telegram_bot):
         super().__init__()
         self.config = config
@@ -105,6 +124,7 @@ class MainWindow(QMainWindow):
         self.dashboard_tab = QWidget()
         self.tabs.addTab(self.dashboard_tab, "Головна")
         self.init_dashboard_tab()
+
 
         self.plugins_tab = QWidget()
         self.tabs.addTab(self.plugins_tab, "Плагіни")
@@ -174,6 +194,10 @@ class MainWindow(QMainWindow):
         btn_stop.clicked.connect(self._stop_automation)
         layout.addWidget(btn_start)
         layout.addWidget(btn_stop)
+        # Ось тут додайте:
+        btn_connect = QPushButton("🔌 Підключитись зараз")
+        btn_connect.clicked.connect(self._manual_connect)
+        layout.addWidget(btn_connect)
 
     def _start_automation(self):
         if self.automation:

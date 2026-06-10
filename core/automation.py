@@ -1,12 +1,14 @@
 import threading
 import time
 from loguru import logger
+from core.server_connector import ServerConnector
 
 class Automation:
     def __init__(self, config, game_controller, plugin_manager):
         self.config = config
         self.game_controller = game_controller
         self.plugin_manager = plugin_manager
+        self.connector = ServerConnector(config)
         self.running = False
         self.thread = None
 
@@ -26,15 +28,20 @@ class Automation:
             try:
                 state = self.game_controller.get_game_state()
                 logger.debug(f"Game state: {state}")
-                if state == "server_list":
-                    self.game_controller.click_filter_positions()
-                    server = self.config.get("server_name")
-                    self.game_controller.connect_to_server(server)
-                elif state == "faction_queue":
-                    threshold = self.config.get("queue_threshold")
-                    if self.game_controller.is_queue_below_threshold(threshold):
-                        # тут має бути клік на "join" або подібне
-                        pass
+                if state == "not_running":
+                    logger.warning("Game not running. Waiting...")
+                elif state in ("main_menu", "multiplayer", "favorites", "server_list"):
+                    # Запускаємо повний цикл підключення
+                    success = self.connector.connect()
+                    if success:
+                        logger.info("Connected! Monitoring game state...")
+                        # Чекаємо, поки гра закінчиться (стан стане не in_game)
+                        while self.running and self.game_controller.get_game_state() == "in_game":
+                            time.sleep(10)
+                elif state in ("queue",):
+                    # Просто чекаємо, конектор сам обробить чергу
+                    pass
+                time.sleep(5)
             except Exception as e:
                 logger.error(f"Automation error: {e}")
-            time.sleep(5)
+                time.sleep(10)
