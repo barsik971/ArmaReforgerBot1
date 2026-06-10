@@ -2,25 +2,59 @@ QMainWindow {
     background: transparent;
 }
 QTabWidget::pane {
-    background: rgba(10, 10, 10, 200);
-    border: 2px solid #ff0099;
+    background: rgba(20, 0, 0, 180);
+    border: 1px solid #ff6600;
+}
+QTabBar::tab {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #ff4400, stop:1 #aa2200);
+    color: white;
+    padding: 6px 12px;
+    margin: 2px;
+}
+QTabBar::tab:selected {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #ff6600, stop:1 #cc3300);
 }
 QPushButton {
-    background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
-                                stop:0 #ff0099, stop:1 #6600cc);
-    color: #0f0;
-    border: 1px solid #0f0;
-    padding: 5px;
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #ff4400, stop:1 #ff8800);
+    color: white;
+    border: 1px solid #ffaa00;
+    padding: 5px 10px;
+    border-radius: 4px;
 }
 QPushButton:hover {
-    background: qlineargradient(x1:0, y1:0, x2:1, y2:1,
-                                stop:0 #ff33aa, stop:1 #9933ff);
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #ff6600, stop:1 #ffaa00);
+}
+QPushButton:pressed {
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #cc3300, stop:1 #ff6600);
 }
 QLabel {
-    color: #ff0099;
+    color: #ffaa00;
+    background: transparent;
 }
 QLineEdit, QTextEdit, QSpinBox, QComboBox {
-    background: #111;
-    color: #0f0;
-    border: 1px solid #ff0099;
+    background: #330000;
+    color: #ffcc00;
+    border: 1px solid #ff6600;
+    padding: 3px;
+    selection-background-color: #ff6600;
+}
+QCheckBox {
+    color: #ffaa00;
+}
+QCheckBox::indicator {
+    width: 16px;
+    height: 16px;
+}
+QCheckBox::indicator:checked {
+    background: #ff6600;
+    border: 1px solid #ffaa00;
+}
+QProgressBar {
+    background: #330000;
+    border: 1px solid #ff6600;
+    text-align: center;
+    color: white;
+}
+QProgressBar::chunk {
+    background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #ff4400, stop:1 #ff8800);
 }

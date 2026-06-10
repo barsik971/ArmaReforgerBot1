@@ -1,4 +1,5 @@
-from PySide6.QtWidgets import QDialog, QVBoxLayout, QTextEdit, QPushButton, QHBoxLayout, QLabel, QLineEdit
+from PySide6.QtWidgets import (QDialog, QVBoxLayout, QTextEdit, QPushButton,
+                               QHBoxLayout, QLabel, QLineEdit)
 from loguru import logger
 
 class MacroDialog(QDialog):
@@ -13,7 +14,6 @@ class MacroDialog(QDialog):
         self.refresh_list()
         layout.addWidget(self.list_widget)
 
-        # Додавання макросу
         add_layout = QHBoxLayout()
         self.hotkey_edit = QLineEdit()
         self.hotkey_edit.setPlaceholderText("Гаряча клавіша (напр. ctrl+1)")

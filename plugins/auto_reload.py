@@ -26,8 +26,7 @@ class AutoReloadPlugin(BasePlugin):
     def _monitor(self):
         while self.running:
             try:
-                # Зменшуємо область для прискорення
-                img = ImageGrab.grab(bbox=(0, 0, 1920, 200))  # верхня частина екрану
+                img = ImageGrab.grab(bbox=(0, 0, 1920, 200))
                 text = pytesseract.image_to_string(img, lang='eng')
                 if "out of ammo" in text.lower() or "reload" in text.lower():
                     pyautogui.press('r')

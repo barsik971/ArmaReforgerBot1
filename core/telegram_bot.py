@@ -1,8 +1,11 @@
 import threading
 import time
 import telebot
+import hmac
+import hashlib
 from loguru import logger
-from core.license_manager import LicenseManager
+
+SIGNING_KEY = b"replace_with_strong_random_key_1234567890"
 
 class TelegramBot:
     def __init__(self, config, license_manager, game_controller):
@@ -51,7 +54,6 @@ class TelegramBot:
 
         @self.bot.message_handler(commands=['screenshot'])
         def screenshot(message):
-            # Робить скріншот та відправляє
             import io
             from PIL import ImageGrab
             img = ImageGrab.grab()
@@ -62,7 +64,6 @@ class TelegramBot:
 
         @self.bot.message_handler(commands=['run_game'])
         def run_game(message):
-            # Запускає гру (заглушка)
             self.bot.reply_to(message, "Game launch triggered")
 
         @self.bot.message_handler(commands=['genlicense'])
@@ -70,7 +71,6 @@ class TelegramBot:
             if message.chat.id != 390469052:
                 self.bot.reply_to(message, "Access denied")
                 return
-            # Очікує формат /genlicense USER_ID DAYS
             args = message.text.split()
             if len(args) != 3:
                 self.bot.reply_to(message, "Usage: /genlicense USER_ID DAYS")
@@ -81,9 +81,15 @@ class TelegramBot:
             except:
                 self.bot.reply_to(message, "Days must be integer")
                 return
-            # Генеруємо простий ключ на основі user_id
-            license_key = f"ARMA-{user_id}-{int(time.time())}"
-            # Зберігаємо (у реальному житті потрібна БД)
-            # Тут просто відправляємо ключ користувачу
-            self.bot.send_message(user_id, f"Your license key: {license_key} (valid for {days} days)")
+
+            if days_int == 0:
+                expiry_str = "never"
+            else:
+                expiry_ts = int(time.time()) + days_int * 86400
+                expiry_str = str(expiry_ts)
+            data = f"{user_id}:{expiry_str}".encode()
+            signature = hmac.new(SIGNING_KEY, data, hashlib.sha256).hexdigest()
+            license_key = f"{user_id}:{expiry_str}:{signature}"
+
+            self.bot.send_message(user_id, f"Your license key: {license_key}")
             self.bot.reply_to(message, f"License generated for user {user_id}")

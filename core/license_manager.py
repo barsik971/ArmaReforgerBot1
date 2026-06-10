@@ -1,24 +1,20 @@
-from datetime import datetime, timedelta
+import hmac
+import hashlib
+from datetime import datetime
 from loguru import logger
+
+SIGNING_KEY = b"replace_with_strong_random_key_1234567890"
 
 class LicenseManager:
     def __init__(self, config):
         self.config = config
 
     def is_pro(self) -> bool:
-        # Секретне слово активує Pro назавжди
         if self.config.get("pro_activated", False):
             return True
-        # Перевірка ліцензійного ключа
         key = self.config.get("license_key", "")
-        expiry = self.config.get("license_expiry", "")
-        if key and expiry:
-            try:
-                exp_date = datetime.strptime(expiry, "%Y-%m-%d")
-                if exp_date > datetime.now():
-                    return True
-            except:
-                pass
+        if key:
+            return self.verify_license_key(key)
         return False
 
     def activate_secret(self, word: str) -> bool:
@@ -28,17 +24,31 @@ class LicenseManager:
             return True
         return False
 
-    def activate_license_key(self, key: str, days: int):
-        # Додає ключ та дату закінчення (0 = назавжди)
-        if days == 0:
-            expiry = "2099-12-31"
-        else:
-            expiry = (datetime.now() + timedelta(days=days)).strftime("%Y-%m-%d")
-        self.config.set("license_key", key)
-        self.config.set("license_expiry", expiry)
-        self.config.set("pro_activated", False)
-        logger.info(f"License activated until {expiry}")
-        return True
+    def activate_license_key(self, license_key: str) -> bool:
+        if self.verify_license_key(license_key):
+            self.config.set("license_key", license_key)
+            self.config.set("pro_activated", False)
+            logger.info("Pro activated via license key")
+            return True
+        return False
+
+    def verify_license_key(self, key: str) -> bool:
+        try:
+            parts = key.split(":")
+            if len(parts) != 3:
+                return False
+            user_id, expiry_str, signature = parts
+            data = f"{user_id}:{expiry_str}".encode()
+            expected_signature = hmac.new(SIGNING_KEY, data, hashlib.sha256).hexdigest()
+            if not hmac.compare_digest(expected_signature, signature):
+                return False
+            if expiry_str == "never":
+                return True
+            expiry_ts = int(expiry_str)
+            return datetime.now().timestamp() < expiry_ts
+        except Exception as e:
+            logger.error(f"License verification error: {e}")
+            return False
 
     def deactivate(self):
         self.config.set("license_key", "")

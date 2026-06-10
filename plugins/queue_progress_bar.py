@@ -1,10 +1,16 @@
 from core.base_plugin import BasePlugin
 from loguru import logger
-from PySide6.QtCore import QObject, Signal, QTimer
-import threading
-import time
+from PySide6.QtCore import QTimer
 
 class QueueProgressBarPlugin(BasePlugin):
+    def __init__(self, config, game_controller):
+        super().__init__(config, game_controller)
+        self.main_window = None
+        self.timer = None
+
+    def set_main_window(self, mw):
+        self.main_window = mw
+
     def get_name(self):
         return "Прогрес-бар черги"
 
@@ -12,17 +18,11 @@ class QueueProgressBarPlugin(BasePlugin):
         return "Оновлює прогрес-бари черги сервера та фракції на головній вкладці"
 
     def on_enable(self):
-        self.running = True
-        self.thread = threading.Thread(target=self._update_bars, daemon=True)
-        self.thread.start()
-        logger.info("Queue progress bar enabled")
+        if self.main_window:
+            # Таймер вже є в MainWindow, тому просто логуємо
+            logger.info("Queue progress bar enabled (MainWindow timer active)")
+        else:
+            logger.warning("MainWindow not set for QueueProgressBarPlugin")
 
     def on_disable(self):
-        self.running = False
         logger.info("Queue progress bar disabled")
-
-    def _update_bars(self):
-        while self.running:
-            # У реальному коді потрібен доступ до головного вікна через сигнали
-            # Тут спрощено
-            time.sleep(2)

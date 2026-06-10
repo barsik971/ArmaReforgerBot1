@@ -1,9 +1,6 @@
-import sys
-import os
-import json
+import sys, os
 from pathlib import Path
 from PySide6.QtWidgets import QApplication
-from PySide6.QtCore import Qt, QTimer
 from loguru import logger
 from core.config_manager import ConfigManager
 from core.license_manager import LicenseManager
@@ -22,36 +19,32 @@ def main():
     setup_logger()
     logger.info("Starting Arma Reforger Auto Bot")
 
-    # Ініціалізація конфігурації
     config_path = Path("config.json")
     config = ConfigManager(config_path)
 
-    # Ліцензування
     license_manager = LicenseManager(config)
-
-    # Ігровий контролер
     game_controller = GameController(config)
 
-    # Менеджер плагінів
-    plugin_manager = PluginManager(config, game_controller)
-    plugin_manager.load_plugins()
-
-    # Telegram бот (запускається завжди)
+    # Telegram бот
     telegram_bot = TelegramBot(config, license_manager, game_controller)
     if config.get("telegram_enabled", True):
         telegram_bot.start()
 
-    # Головне вікно
+    # Створюємо вікно (плагін менеджер створимо після, бо потрібне посилання на вікно)
     app = QApplication(sys.argv)
     app.setStyle("Fusion")
 
-    window = MainWindow(config, license_manager, plugin_manager, game_controller, telegram_bot)
-    window.show()
+    # Тимчасово створюємо plugin_manager без main_window, потім оновимо
+    plugin_manager = PluginManager(config, game_controller, license_manager, main_window=None)
 
-    # Запуск основної автоматизації (автопідключення тощо)
-    from core.automation import Automation
-    automation = Automation(config, game_controller, plugin_manager)
-    automation.start()
+    window = MainWindow(config, license_manager, plugin_manager, game_controller, telegram_bot)
+
+    # Оновлюємо plugin_manager, передаючи вікно
+    plugin_manager.main_window = window
+    plugin_manager.load_plugins()   # тепер плагіни отримають доступ до вікна
+
+    window.add_log_handler()  # підключаємо логування в GUI
+    window.show()
 
     sys.exit(app.exec())
 

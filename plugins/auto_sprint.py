@@ -19,7 +19,6 @@ class AutoSprintPlugin(BasePlugin):
 
     def on_disable(self):
         self.running = False
-        # Відпускаємо клавіші
         pyautogui.keyUp('shift')
         pyautogui.keyUp('w')
         logger.info("AutoSprint disabled")
@@ -27,11 +26,9 @@ class AutoSprintPlugin(BasePlugin):
     def _hold_sprint(self):
         while self.running:
             try:
-                # Тут можна перевіряти стан гри, щоб не бігати в меню
                 pyautogui.keyDown('shift')
                 pyautogui.keyDown('w')
                 time.sleep(60)
-                # Періодично відпускаємо, щоб уникнути залипання
                 pyautogui.keyUp('shift')
                 pyautogui.keyUp('w')
                 time.sleep(0.1)
