@@ -1,6 +1,8 @@
-import sys, os
+import sys
+import os
 from pathlib import Path
 from PySide6.QtWidgets import QApplication
+from PySide6.QtCore import Qt
 from loguru import logger
 from core.config_manager import ConfigManager
 from core.license_manager import LicenseManager
@@ -25,27 +27,30 @@ def main():
     license_manager = LicenseManager(config)
     game_controller = GameController(config)
 
-    # Telegram бот
+    # Telegram бот (запускається завжди, якщо є токен)
     telegram_bot = TelegramBot(config, license_manager, game_controller)
     if config.get("telegram_enabled", True):
         telegram_bot.start()
 
-    # Створюємо вікно (плагін менеджер створимо після, бо потрібне посилання на вікно)
+    # Створюємо GUI
     app = QApplication(sys.argv)
     app.setStyle("Fusion")
 
-    # Тимчасово створюємо plugin_manager без main_window, потім оновимо
+    # PluginManager створюємо без main_window, передамо пізніше
     plugin_manager = PluginManager(config, game_controller, license_manager, main_window=None)
 
     window = MainWindow(config, license_manager, plugin_manager, game_controller, telegram_bot)
 
-    # Оновлюємо plugin_manager, передаючи вікно
+    # Тепер оновлюємо plugin_manager, передаючи посилання на вікно
     plugin_manager.main_window = window
-    plugin_manager.load_plugins()   # тепер плагіни отримають доступ до вікна
+    # Завантажуємо плагіни (тепер вони отримають доступ до вікна)
+    plugin_manager.load_plugins()
 
-    window.add_log_handler()  # підключаємо логування в GUI
+    # Підключаємо логування в GUI (якщо реалізовано)
+    if hasattr(window, 'add_log_handler'):
+        window.add_log_handler()
+
     window.show()
-
     sys.exit(app.exec())
 
 if __name__ == "__main__":
