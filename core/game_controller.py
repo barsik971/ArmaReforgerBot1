@@ -17,6 +17,7 @@ class GameController:
         self.launch_timeout = config.get("game_launch_timeout", 60)
 
     def is_game_running(self) -> bool:
+        """Перевіряє, чи є процес ArmaReforger.exe"""
         for proc in psutil.process_iter(['name']):
             try:
                 if proc.info['name'] and 'ArmaReforger' in proc.info['name']:
@@ -26,26 +27,48 @@ class GameController:
         return False
 
     def launch_game(self):
+        """Запускає гру та чекає появи вікна."""
         if self.is_game_running():
-            logger.info("Гра вже запущена")
+            logger.info("Гра вже запущена (процес знайдено)")
             return True
+
         logger.info("Запускаємо гру...")
         try:
             if self.steam_appid:
-                subprocess.Popen(f"start steam://rungameid/{self.steam_appid}", shell=True)
+                cmd = f"start steam://rungameid/{self.steam_appid}"
+                subprocess.Popen(cmd, shell=True)
+                logger.info(f"Виконано команду: {cmd}")
             elif self.game_exe_path:
                 subprocess.Popen([self.game_exe_path], shell=True)
+                logger.info(f"Запущено виконуваний файл: {self.game_exe_path}")
             else:
-                logger.error("Не вказано шлях до гри в config.json")
+                logger.error("Не вказано steam_appid або game_exe_path у config.json")
                 return False
+
+            # Чекаємо появи вікна гри (назва може бути "Arma Reforger" або схожа)
+            import pygetwindow as gw
             waited = 0
             while waited < self.launch_timeout:
-                if self.is_game_running():
-                    logger.info("Гра успішно запущена")
+                windows = gw.getWindowsWithTitle('Arma Reforger')
+                if windows:
+                    logger.info(f"Вікно гри знайдено через {waited} сек")
+                    # Даємо ще трохи часу на завантаження головного меню
+                    time.sleep(10)
                     return True
                 time.sleep(2)
                 waited += 2
-            logger.error("Не вдалося дочекатися запуску гри")
+
+            logger.error("Не вдалося знайти вікно гри (таймаут)")
+            return False
+        except ImportError:
+            logger.error("pygetwindow не встановлено. Встановіть: pip install pygetwindow")
+            # Якщо немає pygetwindow, пробуємо хоча б перевірити процес
+            waited = 0
+            while waited < self.launch_timeout:
+                if self.is_game_running():
+                    return True
+                time.sleep(2)
+                waited += 2
             return False
         except Exception as e:
             logger.error(f"Помилка запуску гри: {e}")
@@ -55,7 +78,6 @@ class GameController:
         if not self.is_game_running():
             return "not_running"
         try:
-            # Не робимо скріншот, якщо Tesseract не налаштований
             if not hasattr(self, '_tesseract_checked'):
                 self._tesseract_ok = self._check_tesseract()
                 self._tesseract_checked = True
@@ -89,7 +111,7 @@ class GameController:
         except:
             return False
 
-    # Заглушки для сумісності
+    # Не використовуються, але залишені для сумісності
     def click_filter_positions(self):
         positions = self.config.get("filter_positions", [])
         for x, y in positions:

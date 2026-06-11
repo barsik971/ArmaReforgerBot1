@@ -10,3 +10,4 @@ opencv-python>=4.8.0.76
 numpy==1.26.4
 GPUtil>=1.4.0
 pyinstaller>=6.0.0
+pygetwindow>=0.0.9
