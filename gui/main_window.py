@@ -152,7 +152,7 @@ class MainWindow(QMainWindow):
         # Таймер для оновлення прогрес-барів
         self.queue_timer = QTimer(self)
         self.queue_timer.timeout.connect(self._update_queue_bars)
-        self.queue_timer.start(3000)
+        #  self.queue_timer.start(3000)
 
         # Застосовуємо тему
         self.apply_theme(self.current_theme)

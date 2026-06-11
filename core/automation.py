@@ -10,7 +10,7 @@ class Automation:
         self.config = config
         self.game_controller = game_controller
         self.plugin_manager = plugin_manager
-        self.connector = AdaptiveConnector(config)   # тепер Adaptive
+        self.connector = AdaptiveConnector(config, game_controller)  # передаємо контролер
         self.running = False
         self.thread = None
 
@@ -28,16 +28,16 @@ class Automation:
     def _run(self):
         while self.running:
             try:
-                state = self.game_controller.get_game_state()
-                logger.debug(f"Game state: {state}")
-                if state == "not_running":
-                    logger.warning("Гра не запущена")
-                elif state in ("main_menu", "multiplayer", "favorites", "server_list"):
-                    self.connector.connect()
-                    # Після успішного підключення чекаємо виходу з гри
-                    while self.running and self.game_controller.get_game_state() == "in_game":
+                # Запускаємо підключення, воно сама все зробить
+                success = self.connector.connect()
+                if success:
+                    logger.info("Підключення успішне, чекаємо виходу з гри")
+                    # Чекаємо, поки гра завершиться (процес зникне)
+                    while self.running and self.game_controller.is_game_running():
                         time.sleep(10)
-                time.sleep(5)
+                else:
+                    logger.warning("Спроба підключення не вдалася, пауза перед повторною спробою")
+                    time.sleep(30)
             except Exception as e:
                 logger.error(f"Automation error: {e}")
-                time.sleep(10)
+                time.sleep(30)
